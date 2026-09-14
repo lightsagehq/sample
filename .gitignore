@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+results/execute/results.json
+results/analyze/*.json
+results/trace/*.json

@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Hello world",
+    "prompt": "Navigate to https://example.com and describe what you see on the page.",
+    "judge": [
+      "The agent visited https://example.com.",
+      "The agent accurately described the page content."
+    ],
+    "agent": ["claude-code:claude-opus-4-8"],
+    "runs": 1
+  },
+  {
+    "name": "SDK smoke test",
+    "prompt": "Install the SDK and send a successful request.",
+    "judge": [
+      "The SDK is installed.",
+      "An API request returns a successful response."
+    ],
+    "agent": ["claude-code:claude-opus-4-8", "codex:gpt-5-4"],
+    "runs": 1,
+    "repository": "nextjs-starter",
+    "tags": ["sdk", "smoke-test"],
+    "skills": [],
+    "clis": [{"install_command": "brew install lightsagehq/tools/lightsage"}],
+    "mcps": [
+      {
+        "name": "lightsage",
+        "type": "http",
+        "url": "https://mcp.lightsage.com/mcp",
+        "headers": {"X-Lightsage-Api-Key": "${LIGHTSAGE_API_KEY}"}
+      }
+    ],
+    "env": ["LIGHTSAGE_API_KEY"]
+  },
+  {
+    "name": "Auth setup",
+    "prompt": "Configure API-key authentication and make an authenticated call.",
+    "judge": [
+      "The API key is configured correctly.",
+      "An authenticated call returns a 200 response."
+    ],
+    "agent": ["claude-code:claude-opus-4-8"],
+    "runs": 1,
+    "persona": "Platform engineer"
+  }
+]

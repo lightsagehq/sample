@@ -1,48 +1,48 @@
 # Lightsage eval pipeline
 
-A small, three-stage pipeline over the [Lightsage](https://lightsage.com) v2 API:
+A small pipeline over the [Lightsage](https://lightsage.com) v2 API that runs
+evals, then pulls each run's trace and analysis:
 
 1. **`execute.py`** — read eval definitions from `evals.json`, start an eval run
-   for each, and monitor them live.
-2. **`analyze.py`** — retrieve the analysis (verdicts/findings) for one or all runs.
-3. **`trace.py`** — retrieve the full execution trace for one or all runs.
+   for each, and poll until they finish.
+2. **`trace.py`** — retrieve the full execution trace for one or all runs.
+3. **`analyze.py`** — retrieve the analysis (verdicts/findings) for one or all runs.
 
-All API calls go through `POST /v2/eval-runs` and friends using the direct
-create-and-run form — no separate eval/configuration objects to manage.
+`main.py` runs all three in sequence. All API calls go through
+`POST /v2/eval-runs` and friends using the direct create-and-run form — no
+separate eval/configuration objects to manage.
+
+## Quick start
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env      # then paste in your API key
+# edit evals.json to define your evals
+python main.py            # run evals -> trace -> analyze, into results/
+```
 
 ## Layout
 
 ```
 .
+├── main.py               # run the whole pipeline (execute -> trace -> analyze)
 ├── execute.py            # start eval runs + poll until done
-├── analyze.py            # fetch eval-run analysis
 ├── trace.py              # fetch eval-run trace (paginated)
+├── analyze.py            # fetch eval-run analysis
 ├── utils.py              # loads .env + builds the auth header (HEADERS)
 ├── evals.json            # eval definitions (edit this)
-├── .env                  # API key + config (edit this)
+├── .env                  # API key (copy from .env.example)
 ├── requirements.txt
 └── results/
     ├── execute/results.json   # written by execute.py — every prompt + its run
-    ├── analyze/{run_id}.json  # written by analyze.py
-    └── trace/{run_id}.json    # written by trace.py
+    ├── trace/{run_id}.json    # written by trace.py
+    └── analyze/{run_id}.json  # written by analyze.py
 ```
 
 Each script is self-contained: a few plain functions calling the API with
-`requests`, wired together in an `if __name__ == "__main__":` block.
-
-## Setup
-
-```bash
-pip install -r requirements.txt
-```
-
-Then put your API key in `.env`:
-
-```
-LIGHTSAGE_API_KEY=your-api-key-here
-```
-
-Real environment variables always win over `.env`.
+`requests`, wired together in an `if __name__ == "__main__":` block. `utils.py`
+loads `.env` on import (real environment variables win) and builds the auth
+header.
 
 ## Defining evals
 
@@ -83,13 +83,51 @@ Per-eval fields:
 | `agent` | Agent id(s) from `GET /v2/agents`. String or list. |
 | `runs` | Independent attempts per agent. |
 | `repository` | Saved repo id, alias (e.g. `nextjs-starter`), or public GitHub URL. |
-| `persona`, `tags`, `env`, `skills`, `skill_ids`, `clis`, `mcps` | Optional; see the API reference. |
+| `skills` | Public skill packages, e.g. `["resend/resend-skills"]`. |
+| `mcps`, `clis` | Inline tool config (see below) or saved refs (`{"id": "..."}`). |
+| `env` | Secret values for this run — see below. |
+| `persona`, `tags`, `skill_ids` | Optional; see the API reference. |
 
 Each eval is one prompt; a run fans out across **agents × runs**.
 
+### MCP servers, CLIs, and secrets
+
+There's no separate config store — define tools **inline** in the eval. Secrets
+never go in `evals.json`: MCP/CLI configs reference `${VAR}` placeholders, and
+`env` lists which variables to pull from your environment (loaded from `.env`)
+and send with the run.
+
+```json
+{
+  "name": "MCP eval",
+  "prompt": "Use the lightsage MCP server to look something up.",
+  "judge": ["The agent used the MCP server."],
+  "agent": ["claude-code:claude-opus-4-8"],
+  "mcps": [
+    {
+      "name": "lightsage",
+      "type": "http",
+      "url": "https://mcp.lightsage.com/mcp",
+      "headers": { "X-Lightsage-Api-Key": "${LIGHTSAGE_API_KEY}" }
+    }
+  ],
+  "clis": [
+    { "install_command": "brew install lightsagehq/tools/lightsage" }
+  ],
+  "env": ["LIGHTSAGE_API_KEY"]
+}
+```
+
+`env` accepts either a list of variable names (read straight from the
+environment) or a `{ "NAME": "value-or-${VAR}" }` map. `execute.py` resolves
+these to real values right before sending, so the committed JSON stays clean.
+
 ## Usage
 
-### 1. Execute
+The one-shot path is `python main.py` (execute → trace → analyze). You can also
+run each stage on its own:
+
+### Execute
 
 ```bash
 python execute.py     # run everything in evals.json
@@ -109,16 +147,7 @@ SDK smoke test              run_def456            completed   8/8 (100%)
 Completion is detected from `status`, not `percent` (percent can hit 100 while
 the job is still summarizing).
 
-### 2. Analyze
-
-```bash
-python analyze.py <run_id>     # analyze a single run
-python analyze.py --all        # analyze every run in results/execute/results.json
-```
-
-Writes `results/analyze/{run_id}.json` and prints a verdict summary per run.
-
-### 3. Trace
+### Trace
 
 ```bash
 python trace.py <run_id>       # trace a single run
@@ -128,13 +157,14 @@ python trace.py --all          # trace every run in results/execute/results.json
 Pages through `GET /v2/eval-runs/{run_id}/trace` and writes the merged trace to
 `results/trace/{run_id}.json`.
 
-## Typical run
+### Analyze
 
 ```bash
-python execute.py       # start + watch runs, populate results/execute/results.json
-python analyze.py --all # pull analysis for every run
-python trace.py --all   # pull traces for every run
+python analyze.py <run_id>     # analyze a single run
+python analyze.py --all        # analyze every run in results/execute/results.json
 ```
+
+Writes `results/analyze/{run_id}.json` (status + verdicts/findings) per run.
 
 ## API reference
 
