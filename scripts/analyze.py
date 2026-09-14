@@ -2,8 +2,8 @@
 """Fetch the analysis for an eval run.
 
 Usage:
-  python analyze.py <run_id>
-  python analyze.py --all      # every run in results/execute/results.json
+  python scripts/analyze.py <run_id>
+  python scripts/analyze.py --all      # every run in results/execute/results.json
 """
 
 import json
@@ -14,7 +14,7 @@ import requests
 
 from utils import HEADERS
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def analyze(run_id):

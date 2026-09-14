@@ -2,8 +2,8 @@
 """Fetch the execution trace for an eval run.
 
 Usage:
-  python trace.py <run_id>
-  python trace.py --all      # every run in results/execute/results.json
+  python scripts/trace.py <run_id>
+  python scripts/trace.py --all      # every run in results/execute/results.json
 """
 
 import json
@@ -14,7 +14,7 @@ import requests
 
 from utils import HEADERS
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def trace(run_id):

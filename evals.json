@@ -30,7 +30,7 @@
         "headers": {"X-Lightsage-Api-Key": "${LIGHTSAGE_API_KEY}"}
       }
     ],
-    "env": ["LIGHTSAGE_API_KEY"]
+    "env": { "LIGHTSAGE_API_KEY": "${LIGHTSAGE_API_KEY}" }
   },
   {
     "name": "Auth setup",

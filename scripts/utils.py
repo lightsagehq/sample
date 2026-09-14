@@ -3,8 +3,8 @@
 import os
 from pathlib import Path
 
-# Load KEY=VALUE lines from .env into the environment (on import).
-_env = Path(__file__).parent / ".env"
+# Load KEY=VALUE lines from the project-root .env into the environment (on import).
+_env = Path(__file__).resolve().parent.parent / ".env"
 if _env.exists():
     for _line in _env.read_text().splitlines():
         _line = _line.strip()

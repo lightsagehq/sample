@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Run the whole pipeline: start the evals, then trace and analyze every run."""
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+
 from analyze import analyze
 from execute import run
 from trace import trace

@@ -3,10 +3,10 @@
 A small pipeline over the [Lightsage](https://lightsage.com) v2 API that runs
 evals, then pulls each run's trace and analysis:
 
-1. **`execute.py`** — read eval definitions from `evals.json`, start an eval run
-   for each, and poll until they finish.
-2. **`trace.py`** — retrieve the full execution trace for one or all runs.
-3. **`analyze.py`** — retrieve the analysis (verdicts/findings) for one or all runs.
+1. **`scripts/execute.py`** — read eval definitions from `evals.json`, start an
+   eval run for each, and poll until they finish.
+2. **`scripts/trace.py`** — retrieve the full execution trace for one or all runs.
+3. **`scripts/analyze.py`** — retrieve the analysis (verdicts/findings) for one or all runs.
 
 `main.py` runs all three in sequence. All API calls go through
 `POST /v2/eval-runs` and friends using the direct create-and-run form — no
@@ -26,18 +26,22 @@ python main.py            # run evals -> trace -> analyze, into results/
 ```
 .
 ├── main.py               # run the whole pipeline (execute -> trace -> analyze)
-├── execute.py            # start eval runs + poll until done
-├── trace.py              # fetch eval-run trace (paginated)
-├── analyze.py            # fetch eval-run analysis
-├── utils.py              # loads .env + builds the auth header (HEADERS)
 ├── evals.json            # eval definitions (edit this)
 ├── .env                  # API key (copy from .env.example)
 ├── requirements.txt
+├── scripts/
+│   ├── execute.py        # start eval runs + poll until done
+│   ├── trace.py          # fetch eval-run trace (paginated)
+│   ├── analyze.py        # fetch eval-run analysis
+│   └── utils.py          # loads .env + builds the auth header (HEADERS)
 └── results/
     ├── execute/results.json   # written by execute.py — every prompt + its run
     ├── trace/{run_id}.json    # written by trace.py
     └── analyze/{run_id}.json  # written by analyze.py
 ```
+
+`main.py` and `evals.json` sit at the root — the file you run and the file you
+edit. The stage scripts live under `scripts/`.
 
 Each script is self-contained: a few plain functions calling the API with
 `requests`, wired together in an `if __name__ == "__main__":` block. `utils.py`
@@ -94,8 +98,9 @@ Each eval is one prompt; a run fans out across **agents × runs**.
 
 There's no separate config store — define tools **inline** in the eval. Secrets
 never go in `evals.json`: MCP/CLI configs reference `${VAR}` placeholders, and
-`env` lists which variables to pull from your environment (loaded from `.env`)
-and send with the run.
+`env` is a JSON object of variables to send with the run, whose values may
+themselves be `${VAR}` placeholders pulled from your environment (loaded from
+`.env`).
 
 ```json
 {
@@ -114,13 +119,13 @@ and send with the run.
   "clis": [
     { "install_command": "brew install lightsagehq/tools/lightsage" }
   ],
-  "env": ["LIGHTSAGE_API_KEY"]
+  "env": { "LIGHTSAGE_API_KEY": "${LIGHTSAGE_API_KEY}" }
 }
 ```
 
-`env` accepts either a list of variable names (read straight from the
-environment) or a `{ "NAME": "value-or-${VAR}" }` map. `execute.py` resolves
-these to real values right before sending, so the committed JSON stays clean.
+`env` is a `{ "NAME": "value-or-${VAR}" }` object. `execute.py` resolves each
+`${VAR}` to the real value from your environment right before sending, so the
+committed JSON stays clean.
 
 ## Usage
 
@@ -130,7 +135,7 @@ run each stage on its own:
 ### Execute
 
 ```bash
-python execute.py     # run everything in evals.json
+python scripts/execute.py     # run everything in evals.json
 ```
 
 Each eval becomes one `POST /v2/eval-runs`. Run ids are written to
@@ -150,8 +155,8 @@ the job is still summarizing).
 ### Trace
 
 ```bash
-python trace.py <run_id>       # trace a single run
-python trace.py --all          # trace every run in results/execute/results.json
+python scripts/trace.py <run_id>   # trace a single run
+python scripts/trace.py --all      # trace every run in results/execute/results.json
 ```
 
 Pages through `GET /v2/eval-runs/{run_id}/trace` and writes the merged trace to
@@ -160,8 +165,8 @@ Pages through `GET /v2/eval-runs/{run_id}/trace` and writes the merged trace to
 ### Analyze
 
 ```bash
-python analyze.py <run_id>     # analyze a single run
-python analyze.py --all        # analyze every run in results/execute/results.json
+python scripts/analyze.py <run_id>   # analyze a single run
+python scripts/analyze.py --all      # analyze every run in results/execute/results.json
 ```
 
 Writes `results/analyze/{run_id}.json` (status + verdicts/findings) per run.
@@ -175,4 +180,3 @@ Writes `results/analyze/{run_id}.json` (status + verdicts/findings) per run.
 - Retrieve trace: <https://lightsage.com/docs/api-reference/eval-runs/retrieve-an-eval-run-trace>
 
 Auth is an API key sent in the `X-Lightsage-Api-Key` header on every request.
-# sample

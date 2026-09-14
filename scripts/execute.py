@@ -11,7 +11,7 @@ import requests
 
 from utils import HEADERS
 
-ROOT = Path(__file__).parent
+ROOT = Path(__file__).resolve().parent.parent
 DONE = {"completed", "failed", "cancelled", "error", "interrupted"}
 
 # Fields passed straight through from an eval entry to the request body.
@@ -19,14 +19,11 @@ PASSTHROUGH = ("repository", "persona", "tags", "skills", "skill_ids", "mcps", "
 
 
 def resolve_env(env):
-    """Build the write-only `env` map, keeping secrets out of evals.json.
+    """Resolve ${VAR} references in an env map from the environment.
 
-    `env` may be a list of variable names (read from the environment) or a
-    mapping whose values may contain ${VAR} references (also read from the
-    environment). MCP/CLI headers reference the same ${VAR} names.
+    Keeps secrets out of evals.json: values hold ${VAR} placeholders (the same
+    names MCP/CLI headers reference) and are filled from the local environment.
     """
-    if isinstance(env, list):
-        return {name: os.environ[name] for name in env}
     return {
         key: re.sub(r"\$\{(\w+)\}", lambda m: os.environ[m.group(1)], value)
         for key, value in env.items()
