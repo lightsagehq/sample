@@ -143,13 +143,16 @@ lost), then each run is polled with `GET /v2/eval-runs/{run_id}` and the status
 is redrawn as a table until everything finishes:
 
 ```
-EVAL                        RUN ID                STATUS      PROGRESS
-Hello world                 run_abc123            running     2/4 (50%)
-SDK smoke test              run_def456            completed   8/8 (100%)
+EVAL                         │ AGENT                          │ STATUS    │ PROGRESS
+─────────────────────────────┼────────────────────────────────┼───────────┼─────────
+Hello world                  │ claude-code:claude-opus-4-8    │ running   │ 2/4
+SDK smoke test               │ claude-code:claude-opus-4-8    │ completed │ 8/8
 ```
 
-Completion is detected from `status`, not `percent` (percent can hit 100 while
-the job is still summarizing).
+Progress counts terminal child jobs (completed + failed + cancelled +
+interrupted) against the total. Non-completed terminal states are called out
+explicitly, e.g. `6/8 (1 failed)`. Completion is detected from `status`, not
+the progress counter.
 
 ### Trace
 
