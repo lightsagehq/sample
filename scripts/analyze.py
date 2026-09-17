@@ -18,14 +18,20 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def analyze(run_id):
-    """GET /v2/eval-runs/{run_id}/analysis and write results/analyze/{run_id}.json."""
-    resp = requests.get(f"https://api.lightsage.com/v2/eval-runs/{run_id}/analysis", headers=HEADERS)
+    """GET /v2/eval-runs/{run_id} and write its analysis to results/analyze/{run_id}.json.
+
+    The dedicated /analysis sub-resource was removed; analysis is now returned
+    as a top-level `analysis` array on the eval-run detail response (populated
+    once an attempt has been analyzed).
+    """
+    resp = requests.get(f"https://api.lightsage.com/v2/eval-runs/{run_id}", headers=HEADERS)
     resp.raise_for_status()
     data = resp.json()
+    analysis = data.get("analysis") or []
     out = ROOT / "results" / "analyze" / f"{run_id}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(data, indent=2) + "\n")
-    print(f"{run_id} [{data.get('status')}] -> {out}")
+    out.write_text(json.dumps(analysis, indent=2) + "\n")
+    print(f"{run_id} [{data.get('status')}] {len(analysis)} analyzed -> {out}")
 
 
 def all_run_ids():

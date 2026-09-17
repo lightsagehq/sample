@@ -86,9 +86,10 @@ Per-eval fields:
 | `judge` | One success criterion or a list of them (`judges` also accepted). Required. |
 | `agent` | Agent id(s) from `GET /v2/agents`. String or list. |
 | `runs` | Independent attempts per agent. |
-| `repository` | Saved repo id, alias (e.g. `nextjs-starter`), or public GitHub URL. |
+| `repository` | Saved repo UUID (from `GET /v2/repositories`) or a public GitHub URL. Plain aliases are rejected. |
 | `skills` | Public skill packages, e.g. `["resend/resend-skills"]`. |
-| `mcps`, `clis` | Inline tool config (see below) or saved refs (`{"id": "..."}`). |
+| `clis` | Install commands to run before the agent starts, e.g. `["pip install firecrawl-py"]`. |
+| `mcps` | Inline MCP server config (see below) or saved refs (`{"id": "..."}`). |
 | `env` | Secret values for this run — see below. |
 | `persona`, `tags`, `skill_ids` | Optional; see the API reference. |
 
@@ -116,9 +117,7 @@ themselves be `${VAR}` placeholders pulled from your environment (loaded from
       "headers": { "X-Lightsage-Api-Key": "${LIGHTSAGE_API_KEY}" }
     }
   ],
-  "clis": [
-    { "install_command": "brew install lightsagehq/tools/lightsage" }
-  ],
+  "clis": ["brew install lightsagehq/tools/lightsage"],
   "env": { "LIGHTSAGE_API_KEY": "${LIGHTSAGE_API_KEY}" }
 }
 ```
@@ -169,14 +168,15 @@ python scripts/analyze.py <run_id>   # analyze a single run
 python scripts/analyze.py --all      # analyze every run in results/execute/results.json
 ```
 
-Writes `results/analyze/{run_id}.json` (status + verdicts/findings) per run.
+Writes the run's per-attempt analysis (verdicts/findings) to
+`results/analyze/{run_id}.json`.
 
 ## API reference
 
 - Docs index: <https://lightsage.com/docs/llms.txt>
 - Start an eval run: <https://lightsage.com/docs/api-reference/eval-runs/start-an-eval-run>
 - Monitor runs: <https://lightsage.com/docs/api-reference/eval-runs/monitor-runs>
-- Retrieve analysis: <https://lightsage.com/docs/api-reference/eval-runs/retrieve-eval-run-analysis>
+- Retrieve analysis (top-level `analysis` on the run detail): <https://lightsage.com/docs/api-reference/eval-runs/retrieve-an-eval-run>
 - Retrieve trace: <https://lightsage.com/docs/api-reference/eval-runs/retrieve-an-eval-run-trace>
 
 Auth is an API key sent in the `X-Lightsage-Api-Key` header on every request.
