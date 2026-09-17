@@ -84,7 +84,7 @@ Per-eval fields:
 | `name` | Display name (defaults to the prompt). |
 | `prompt` | The single task for this eval. Required. |
 | `judge` | One success criterion or a list of them (`judges` also accepted). Required. |
-| `agent` | Agent id(s) from `GET /v2/agents`. String or list. |
+| `agent` | Agent id(s) as `harness:model` strings. Call `GET /v2/agents` to list all available harnesses and models. String or list. |
 | `runs` | Independent attempts per agent. |
 | `repository` | Saved repo UUID (from `GET /v2/repositories`) or a public GitHub URL. Plain aliases are rejected. |
 | `skills` | Public skill packages, e.g. `["resend/resend-skills"]`. |
@@ -94,6 +94,20 @@ Per-eval fields:
 | `persona`, `tags`, `skill_ids` | Optional; see the API reference. |
 
 Each eval is one prompt; a run fans out across **agents × runs**.
+
+### Available agents
+
+Agent ids follow the format `harness:model` (e.g. `claude-code:claude-fable-5-1`,
+`codex:gpt-6-terra`). To see every supported combination, call the agents
+endpoint:
+
+```bash
+curl -H "X-Lightsage-Api-Key: $LIGHTSAGE_API_KEY" \
+  https://api.lightsage.com/v2/agents
+```
+
+Each entry in the response has an `id` you can use directly in the `agent` field
+of your eval definitions.
 
 ### MCP servers, CLIs, and secrets
 
